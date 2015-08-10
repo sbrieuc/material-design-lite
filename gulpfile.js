@@ -666,6 +666,29 @@ gulp.task('publish:release', ['_release'], function() {
   .pipe(vinylPaths(del));
 });
 
+gulp.task('publish:gh-pages', function(cb) {
+  runSequence(
+    // "deactivate" .gitignore so `dist` can be staged
+    function() {
+      return gulp.src('.gitignore')
+      .pipe($.rename('.gitignore.bak'));
+    },
+    function() {
+      return gulp.src('dist')
+      .pipe($.subtree({
+        remote: 'origin',
+        branch: 'gh-pages2'
+      }));
+    },
+    // and "reactivate" .gitignore
+    function() {
+      return gulp.src('.gitignore.bak')
+      .pipe($.rename('.gitignore'));
+    },
+    cb
+  );
+});
+
 gulp.task('templates:styles', function() {
   return gulp.src([
     'templates/**/*.css'
