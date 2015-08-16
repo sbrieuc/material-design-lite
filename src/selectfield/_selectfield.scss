@@ -71,25 +71,43 @@
   .mdl-menu__container, .mdl-menu__outline, .mdl-menu {
     min-width: 100%;
   }
-}
 
-.mdl-select__button {
-  position: static;
-  border-bottom: 1px solid $input-text-bottom-border-color;
-  display: inline-block;
-  font-size: $input-text-font-size;
-  font-weight: normal;
-  margin: 0;
-  padding: $input-text-padding 0;
-  width: $input-text-width;
-  background: none;
-  text-align: left;
-  text-transform: none;
-  color: inherit;
-  height: auto;
-  line-height: normal;
-
-  &:hover {
+  .mdl-select__button {
+    position: static;
+    border-bottom: 1px solid $input-text-bottom-border-color;
+    display: inline-block;
+    font-size: $input-text-font-size;
+    font-weight: normal;
+    margin: 0;
+    padding: $input-text-padding 0;
+    width: $input-text-width;
     background: none;
+    text-align: left;
+    text-transform: none;
+    color: inherit;
+    line-height: normal;
+    height: 28px;
+    border-radius: 0;
+
+    &:hover {
+      background: none;
+    }
   }
+
+  &.is-focused .mdl-select__button {
+    outline: none;
+  }
+
+  &.is-invalid .mdl-select__button {
+    border-color: $input-text-error-color;
+    box-shadow: none;
+  }
+
+  &.is-disabled .mdl-select__button {
+    background-color: transparent;
+    border-bottom: 1px dotted $input-text-disabled-color;
+    color: $input-text-disabled-text-color;
+  }
+
 }
+
