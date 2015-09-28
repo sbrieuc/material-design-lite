@@ -129,6 +129,23 @@
   };
 
   /**
+   * Fire change event on selection
+   *
+   * @public
+   */
+  MaterialSelectfield.prototype.fireChange = function() {
+    var evt;
+    if (document.createEventObject) {
+      evt = document.createEventObject();
+      return this.select_.fireEvent('onchange', evt);
+    } else {
+      evt = document.createEvent('HTMLEvents');
+      evt.initEvent('change', true, true);
+      return !this.select_.dispatchEvent(evt);
+    }
+  };
+
+  /**
    * Initialize element.
    */
   MaterialSelectfield.prototype.init = function () {
@@ -195,6 +212,20 @@
     this.element_.classList.remove(this.CssClasses_.IS_FOCUSED);
 
     this.updateClasses_();
+
+    this.fireChange();
+  };
+
+  /**
+   * Downgrade the component
+   *
+   * @private
+   */
+  MaterialSelectfield.prototype.mdlDowngrade_ = function() {
+    componentHandler.downgradeElements(this.menu_);
+    this.button_.removeEventListener('click', this.clickMenu_.bind(this));
+    this.element_.removeChild(this.menu_.parentNode);
+    this.button_.parentNode.removeChild(this.button_);
   };
 
   // The component registers itself. It can assume componentHandler is
@@ -202,6 +233,7 @@
   componentHandler.register({
     constructor: MaterialSelectfield,
     classAsString: 'MaterialSelectfield',
-    cssClass: 'mdl-js-selectfield'
+    cssClass: 'mdl-js-selectfield',
+    widget: true
   });
 })();
