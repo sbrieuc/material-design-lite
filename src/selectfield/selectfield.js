@@ -24,7 +24,7 @@
    * https://github.com/jasonmayes/mdl-component-design-pattern
    * @param {HTMLElement} element The element that will be upgraded.
    */
-  var MaterialSelectfield = function (element) {
+  var MaterialSelectfield = function(element) {
 
     this.element_ = element;
 
@@ -63,7 +63,7 @@
    *
    * @private
    */
-  MaterialSelectfield.prototype.updateClasses_ = function () {
+  MaterialSelectfield.prototype.updateClasses_ = function() {
     this.checkDisabled();
     this.checkValidity();
     this.checkDirty();
@@ -74,7 +74,7 @@
    *
    * @public
    */
-  MaterialSelectfield.prototype.checkDisabled = function () {
+  MaterialSelectfield.prototype.checkDisabled = function() {
     if (this.select_.disabled) {
       this.element_.classList.add(this.CssClasses_.IS_DISABLED);
     } else {
@@ -87,7 +87,7 @@
    *
    * @public
    */
-  MaterialSelectfield.prototype.checkValidity = function () {
+  MaterialSelectfield.prototype.checkValidity = function() {
     if (this.select_.validity.valid) {
       this.element_.classList.remove(this.CssClasses_.IS_INVALID);
     } else {
@@ -100,7 +100,7 @@
    *
    * @public
    */
-  MaterialSelectfield.prototype.checkDirty = function () {
+  MaterialSelectfield.prototype.checkDirty = function() {
     if (this.select_.value && this.select_.value.length > 0) {
       this.element_.classList.add(this.CssClasses_.IS_DIRTY);
     } else {
@@ -113,7 +113,7 @@
    *
    * @public
    */
-  MaterialSelectfield.prototype.disable = function () {
+  MaterialSelectfield.prototype.disable = function() {
     this.select_.disabled = true;
     this.updateClasses_();
   };
@@ -123,7 +123,7 @@
    *
    * @public
    */
-  MaterialSelectfield.prototype.enable = function () {
+  MaterialSelectfield.prototype.enable = function() {
     this.select_.disabled = false;
     this.updateClasses_();
   };
@@ -148,7 +148,7 @@
   /**
    * Initialize element.
    */
-  MaterialSelectfield.prototype.init = function () {
+  MaterialSelectfield.prototype.init = function() {
 
     if (this.element_) {
       this.select_ = this.element_.querySelector('.' + this.CssClasses_.SELECT);
@@ -192,14 +192,21 @@
     }
   };
 
-  MaterialSelectfield.prototype.clickMenu_ = function () {
+  /**
+   * Handle click on menu
+   */
+  MaterialSelectfield.prototype.clickMenu_ = function() {
     if (!this.select_.disabled) {
       this.element_.classList.add(this.CssClasses_.IS_FOCUSED);
       this.menu_.MaterialMenu.toggle();
     }
   };
 
-  MaterialSelectfield.prototype.clickMenuItem_ = function (event) {
+  /**
+   * Handle menu item selection event
+   * @param event
+   */
+  MaterialSelectfield.prototype.clickMenuItem_ = function(event) {
 
     // change select to point to selected item (change index to index of menuItem inside menu)
     this.select_.selectedIndex = Array.prototype.indexOf.call(event.target.parentElement.childNodes, event.target);
