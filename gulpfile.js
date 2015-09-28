@@ -80,6 +80,7 @@ var SOURCES = [
   'src/switch/switch.js',
   'src/tabs/tabs.js',
   'src/textfield/textfield.js',
+  'src/selectfield/selectfield.js',
   'src/tooltip/tooltip.js',
   // Complex components (which reuse base components)
   'src/layout/layout.js',
