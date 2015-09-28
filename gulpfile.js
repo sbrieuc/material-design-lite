@@ -35,7 +35,9 @@ var path = require('path');
 var pkg = require('./package.json');
 var through = require('through2');
 var swig = require('swig');
+var closureCompiler = require('gulp-closure-compiler');
 var hostedLibsUrlPrefix = 'https://storage.googleapis.com/code.getmdl.io';
+var templateArchivePrefix = 'mdl-template-';
 var bucketProd = 'gs://www.getmdl.io';
 var bucketStaging = 'gs://mdl-staging';
 var bucketCode = 'gs://code.getmdl.io';
@@ -58,6 +60,32 @@ var AUTOPREFIXER_BROWSERS = [
   'ios >= 7',
   'android >= 4.4',
   'bb >= 10'
+];
+
+var SOURCES = [
+  // Component handler
+  'src/mdlComponentHandler.js',
+  // Polyfills/dependencies
+  'src/third_party/**/*.js',
+  // Base components
+  'src/button/button.js',
+  'src/checkbox/checkbox.js',
+  'src/icon-toggle/icon-toggle.js',
+  'src/menu/menu.js',
+  'src/progress/progress.js',
+  'src/radio/radio.js',
+  'src/slider/slider.js',
+  'src/snackbar/snackbar.js',
+  'src/spinner/spinner.js',
+  'src/switch/switch.js',
+  'src/tabs/tabs.js',
+  'src/textfield/textfield.js',
+  'src/tooltip/tooltip.js',
+  // Complex components (which reuse base components)
+  'src/layout/layout.js',
+  'src/data-table/data-table.js',
+  // And finally, the ripples
+  'src/ripple/ripple.js'
 ];
 
 // ***** Development tasks ****** //
@@ -191,35 +219,28 @@ gulp.task('styles-grid', function() {
     .pipe($.size({title: 'styles-grid'}));
 });
 
+// Build with Google's Closure Compiler, requires Java 1.7+ installed.
+gulp.task('closure', function() {
+  return gulp.src(SOURCES)
+    .pipe(closureCompiler({
+      compilerPath: 'node_modules/google-closure-compiler/compiler.jar',
+      fileName: 'material.closure.min.js',
+      compilerFlags: {
+        // jscs:disable closureCamelCase
+        compilation_level: 'ADVANCED_OPTIMIZATIONS',
+        language_in: 'ECMASCRIPT6_STRICT',
+        language_out: 'ECMASCRIPT5_STRICT',
+        warning_level: 'VERBOSE'
+        // jscs:enable closureCamelCase
+      }
+    }))
+    .pipe(gulp.dest('./dist'));
+});
+
 // Concatenate And Minify JavaScript
 gulp.task('scripts', ['jscs', 'jshint'], function() {
-  var sources = [
-    // Component handler
-    'src/mdlComponentHandler.js',
-    // Polyfills/dependencies
-    'src/third_party/**/*.js',
-    // Base components
-    'src/button/button.js',
-    'src/checkbox/checkbox.js',
-    'src/icon-toggle/icon-toggle.js',
-    'src/menu/menu.js',
-    'src/progress/progress.js',
-    'src/radio/radio.js',
-    'src/selectfield/selectfield.js',
-    'src/slider/slider.js',
-    'src/spinner/spinner.js',
-    'src/switch/switch.js',
-    'src/tabs/tabs.js',
-    'src/textfield/textfield.js',
-    'src/tooltip/tooltip.js',
-    // Complex components (which reuse base components)
-    'src/layout/layout.js',
-    'src/data-table/data-table.js',
-    // And finally, the ripples
-    'src/ripple/ripple.js'
-  ];
-  return gulp.src(sources)
-    .pipe(uniffe())
+  return gulp.src(SOURCES)
+    .pipe($.if(/mdlComponentHandler\.js/, $.util.noop(), uniffe()))
     .pipe($.sourcemaps.init())
     // Concatenate Scripts
     .pipe($.concat('material.js'))
@@ -250,20 +271,22 @@ gulp.task('metadata', function() {
 });
 
 // Build Production Files, the Default Task
-gulp.task('default', ['clean', 'mocha'], function(cb) {
+gulp.task('default', ['clean'], function(cb) {
   runSequence(
     ['styles', 'styles-grid'],
     ['scripts'],
+    ['mocha'],
     cb);
 });
 
 // Build production files and microsite
-gulp.task('all', ['clean', 'mocha'], function(cb) {
+gulp.task('all', ['clean'], function(cb) {
   runSequence(
     ['default', 'styletemplates'],
     ['styles:gen'],
     ['jshint', 'jscs', 'scripts',  'assets', 'demos', 'pages',
      'templates', 'images', 'styles-grid', 'metadata'],
+    ['mocha'],
     ['zip'],
     cb);
 });
@@ -275,7 +298,22 @@ gulp.task('mocha', ['styles'], function() {
     .pipe($.mochaPhantomjs({reporter: 'tap'}));
 });
 
-gulp.task('test', ['jshint', 'jscs', 'mocha']);
+gulp.task('mocha:closure', ['closure'], function() {
+  return gulp.src('./test/index.html')
+    .pipe($.replace('src="../dist/material.js"',
+        'src="../dist/material.closure.min.js"'))
+    .pipe($.rename('temp.html'))
+    .pipe(gulp.dest('./test'))
+    .pipe($.mochaPhantomjs({reporter: 'tap'}))
+    .on('finish', function() {
+      del('test/temp.html', {'force': true});
+    })
+    .on('error', function() {
+      del('test/temp.html', {'force': true});
+    });
+});
+
+gulp.task('test', ['jshint', 'jscs', 'mocha', 'mocha:closure']);
 
 gulp.task('test:visual', function() {
   browserSync({
@@ -363,6 +401,9 @@ gulp.task('demoresources', function() {
  * put together.
  */
 gulp.task('demos', ['demoresources'], function() {
+  /**
+   * Retrieves the list of component folders.
+   */
   function getComponentFolders() {
     return fs.readdirSync('./src/')
       .filter(function(file) {
@@ -404,6 +445,7 @@ gulp.task('pages', ['components'], function() {
     .pipe(applyTemplate())
     .pipe($.replace('$$version$$', pkg.version))
     .pipe($.replace('$$hosted_libs_prefix$$', hostedLibsUrlPrefix))
+    .pipe($.replace('$$template_archive_prefix$$', templateArchivePrefix))
     /* Replacing code blocks class name to match Prism's. */
     .pipe($.replace('class="lang-', 'class="language-'))
     /* Translate html code blocks to "markup" because that's what Prism uses. */
@@ -445,6 +487,9 @@ gulp.task('assets', function() {
     .pipe(gulp.dest('dist/assets'));
 });
 
+/**
+ * Defines the list of resources to watch for changes.
+ */
 function watch() {
   gulp.watch(['src/**/*.js', '!src/**/README.md'],
     ['scripts', 'demos', 'components', reload]);
@@ -492,37 +537,39 @@ gulp.task('zip:mdl', function() {
     .pipe(gulp.dest('dist'));
 });
 
-// Generate release archive containing the library, templates and assets
-// for templates. Note that it is intentional for some templates to include
-// a customised version of the material.min.css file for their own needs.
-// Others (e.g the Android template) simply use the default built version of
-// the library.
+/**
+ * Returns the list of children directories inside the given directory.
+ * @param {string} dir the parent directory
+ * @return {Array<string>} list of child directories
+ */
+function getSubDirectories(dir) {
+  return fs.readdirSync(dir)
+    .filter(function(file) {
+      return fs.statSync(dir + '/' + file).isDirectory();
+    });
+}
 
-// Define a filter containing only the build assets we want to pluck from the
-// `dist` stream. This enables us to preserve the correct final dir structure,
-// which was not occurring when simply using `gulp.src` in `zip:templates`
-
-var fileFilter = $.filter([
-  'material?(.min)@(.js|.css)?(.map)',
-  'templates/**/*.*',
-  'assets/**/*.*',
-  'LICENSE',
-  'bower.json',
-  'package.json']);
-
+// Generate release archives containing the templates and assets for templates.
 gulp.task('zip:templates', function() {
-  // Stream of all `dist` files and other package manager files from root
-  return gulp.src(['dist/**/*.*', 'LICENSE', 'bower.json', 'package.json'])
-  .pipe(fileFilter)
-  .pipe($.zip('mdl-templates.zip'))
-  .pipe(fileFilter.restore())
-  .pipe(gulp.dest('dist'));
+  var templates = getSubDirectories('dist/templates');
+
+  // Generate a zip file for each template.
+  var generateZips = templates.map(function(template) {
+    return gulp.src(['dist/templates/' + template + '/**/*.*', 'LICENSE'])
+      .pipe($.rename(function(path) {
+        path.dirname = path.dirname.replace('dist/templates/' + template, '');
+      }))
+      .pipe($.zip(templateArchivePrefix + template + '.zip'))
+      .pipe(gulp.dest('dist'));
+  });
+
+  return merge(generateZips);
 });
 
 gulp.task('zip', ['zip:templates', 'zip:mdl']);
 
 gulp.task('genCodeFiles', function() {
-  return gulp.src(['dist/material.*@(js|css)?(.map)', 'dist/mdl.zip', 'dist/mdl-templates.zip'],
+  return gulp.src(['dist/material.*@(js|css)?(.map)', 'dist/mdl.zip', 'dist/' + templateArchivePrefix + '*.zip'],
       {read: false})
     .pipe($.tap(function(file, t) {
       codeFiles += ' dist/' + path.basename(file.path);
@@ -567,8 +614,11 @@ gulp.task('publish:code', function(cb) {
     cb);
 });
 
-// Function to publish staging or prod version from local tree,
-// or to promote staging to prod, per passed arg.
+/**
+ * Function to publish staging or prod version from local tree,
+ * or to promote staging to prod, per passed arg.
+ * @param {string} pubScope the scope to publish to.
+ */
 function mdlPublish(pubScope) {
   var cacheTtl = null;
   var src = null;
@@ -639,26 +689,10 @@ gulp.task('publish:staging', function() {
   mdlPublish('staging');
 });
 
-gulp.task('templates:mdl', function() {
-  return gulp.src([
-    'templates/**/*.scss'
-  ])
-    .pipe($.sass({
-      precision: 10,
-      onError: console.error.bind(console, 'Sass error:')
-    }))
-    .pipe($.cssInlineImages({
-      webRoot: 'src'
-    }))
-    .pipe($.autoprefixer(AUTOPREFIXER_BROWSERS))
-    .pipe($.csso())
-    .pipe($.rename({suffix: '.min'}))
-    .pipe(gulp.dest('dist/templates'));
-});
-
 gulp.task('_release', function() {
   return gulp.src(['dist/material?(.min)@(.js|.css)?(.map)', 'LICENSE',
-    'README.md', 'bower.json', 'package.json', './sr?/**/*', 'gulpfile.js'])
+    'README.md', 'bower.json', 'package.json', '.jscsrc', '.jshintrc',
+    './sr?/**/*', 'gulpfile.js', './util?/**/*'])
     .pipe(gulp.dest('_release'));
 });
 
@@ -686,7 +720,20 @@ gulp.task('templates:static', function() {
   return gulp.src([
     'templates/**/*.html',
   ])
+  .pipe($.replace('$$version$$', pkg.version))
+  .pipe($.replace('$$hosted_libs_prefix$$', hostedLibsUrlPrefix))
   .pipe(gulp.dest('dist/templates'));
+});
+
+// This task can be used if you want to test the templates against locally
+// built version of the MDL libraries.
+gulp.task('templates:localtestingoverride', function() {
+  return gulp.src([
+    'templates/**/*.html',
+  ])
+    .pipe($.replace('$$version$$', '.'))
+    .pipe($.replace('$$hosted_libs_prefix$$', ''))
+    .pipe(gulp.dest('dist/templates'));
 });
 
 gulp.task('templates:images', function() {
@@ -707,7 +754,7 @@ gulp.task('templates:fonts', function() {
   .pipe(gulp.dest('dist/templates/'));
 });
 
-gulp.task('templates', ['templates:static', 'templates:images', 'templates:mdl',
+gulp.task('templates', ['templates:static', 'templates:images',
     'templates:fonts', 'templates:styles']);
 
 gulp.task('styles:gen', ['styles'], function() {
