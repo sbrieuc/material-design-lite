@@ -44,9 +44,21 @@
     MAX_WIDTH: '(max-width: 1024px)',
     TAB_SCROLL_PIXELS: 100,
 
-    MENU_ICON: 'menu',
+    MENU_ICON: '&#xE5D2;',
     CHEVRON_LEFT: 'chevron_left',
     CHEVRON_RIGHT: 'chevron_right'
+  };
+
+  /**
+   * Keycodes, for code readability.
+   *
+   * @enum {number}
+   * @private
+   */
+  MaterialLayout.prototype.Keycodes_ = {
+    ENTER: 13,
+    ESCAPE: 27,
+    SPACE: 32
   };
 
   /**
@@ -139,6 +151,18 @@
   };
 
   /**
+   * Handles a keyboard event on the drawer.
+   *
+   * @param {Event} evt The event that fired.
+   * @private
+   */
+  MaterialLayout.prototype.keyboardEventHandler_ = function(evt) {
+    if (evt.keyCode === this.Keycodes_.ESCAPE) {
+      this.toggleDrawer();
+    }
+  };
+
+  /**
    * Handles changes in screen size.
    *
    * @private
@@ -151,17 +175,29 @@
       // Collapse drawer (if any) when moving to a large screen size.
       if (this.drawer_) {
         this.drawer_.classList.remove(this.CssClasses_.IS_DRAWER_OPEN);
+        this.obfuscator_.classList.remove(this.CssClasses_.IS_DRAWER_OPEN);
       }
     }
   };
 
   /**
-   * Handles toggling of the drawer.
+   * Handles events of of drawer button.
    *
+   * @param {Event} evt The event that fired.
    * @private
    */
-  MaterialLayout.prototype.drawerToggleHandler_ = function() {
-    this.drawer_.classList.toggle(this.CssClasses_.IS_DRAWER_OPEN);
+  MaterialLayout.prototype.drawerToggleHandler_ = function(evt) {
+    if (evt && (evt.type === 'keydown')) {
+      if (evt.keyCode === this.Keycodes_.SPACE || evt.keyCode === this.Keycodes_.ENTER) {
+        // prevent scrolling in drawer nav
+        evt.preventDefault();
+      } else {
+        // prevent other keys
+        return;
+      }
+    }
+
+    this.toggleDrawer();
   };
 
   /**
@@ -208,6 +244,33 @@
   };
 
   /**
+  * Toggle drawer state
+  *
+  * @public
+  */
+  MaterialLayout.prototype.toggleDrawer = function() {
+    var drawerButton = this.element_.querySelector('.' + this.CssClasses_.DRAWER_BTN);
+    var firstLink = document.querySelector('.' + this.CssClasses_.DRAWER + ' a');
+    this.drawer_.classList.toggle(this.CssClasses_.IS_DRAWER_OPEN);
+    this.obfuscator_.classList.toggle(this.CssClasses_.IS_DRAWER_OPEN);
+
+    // focus first link if drawer will be opened otherwise focus the drawer button
+    if (this.drawer_.classList.contains(this.CssClasses_.IS_DRAWER_OPEN)) {
+      this.drawer_.setAttribute('aria-hidden', 'false');
+      drawerButton.setAttribute('aria-expanded', 'true');
+      if (firstLink) {
+        firstLink.focus();
+      }
+    } else {
+      this.drawer_.setAttribute('aria-hidden', 'true');
+      drawerButton.setAttribute('aria-expanded', 'false');
+      drawerButton.focus();
+    }
+  };
+  MaterialLayout.prototype['toggleDrawer'] =
+      MaterialLayout.prototype.toggleDrawer;
+
+  /**
    * Initialize element.
    */
   MaterialLayout.prototype.init = function() {
@@ -219,7 +282,8 @@
       container.appendChild(this.element_);
 
       var directChildren = this.element_.childNodes;
-      for (var c = 0; c < directChildren.length; c++) {
+      var numChildren = directChildren.length;
+      for (var c = 0; c < numChildren; c++) {
         var child = directChildren[c];
         if (child.classList &&
             child.classList.contains(this.CssClasses_.HEADER)) {
@@ -242,13 +306,6 @@
       }
 
       var mode = this.Mode_.STANDARD;
-
-      // Keep an eye on screen size, and add/remove auxiliary class for styling
-      // of small screens.
-      this.screenSizeMediaQuery_ = window.matchMedia(
-          /** @type {string} */ (this.Constant_.MAX_WIDTH));
-      this.screenSizeMediaQuery_.addListener(this.screenSizeHandler_.bind(this));
-      this.screenSizeHandler_();
 
       if (this.header_) {
         if (this.header_.classList.contains(this.CssClasses_.HEADER_SEAMED)) {
@@ -286,25 +343,20 @@
         }
       }
 
-      /**
-       * Prevents an event from triggering the default behaviour.
-       * @param  {Event} ev the event to eat.
-       */
-      var eatEvent = function(ev) {
-        ev.preventDefault();
-      };
-
       // Add drawer toggling button to our layout, if we have an openable drawer.
       if (this.drawer_) {
         var drawerButton = this.element_.querySelector('.' +
           this.CssClasses_.DRAWER_BTN);
-        if (typeof(drawerButton) === 'undefined' || drawerButton === null) {
+        if (!drawerButton) {
           drawerButton = document.createElement('div');
+          drawerButton.setAttribute('aria-expanded', 'false');
+          drawerButton.setAttribute('role', 'button');
+          drawerButton.setAttribute('tabindex', '0');
           drawerButton.classList.add(this.CssClasses_.DRAWER_BTN);
 
           var drawerButtonIcon = document.createElement('i');
           drawerButtonIcon.classList.add(this.CssClasses_.ICON);
-          drawerButtonIcon.textContent = this.Constant_.MENU_ICON;
+          drawerButtonIcon.innerHTML = this.Constant_.MENU_ICON;
           drawerButton.appendChild(drawerButtonIcon);
         }
 
@@ -317,6 +369,9 @@
         }
 
         drawerButton.addEventListener('click',
+            this.drawerToggleHandler_.bind(this));
+
+        drawerButton.addEventListener('keydown',
             this.drawerToggleHandler_.bind(this));
 
         // Add a class if the layout has a drawer, for altering the left padding.
@@ -337,8 +392,18 @@
         this.element_.appendChild(obfuscator);
         obfuscator.addEventListener('click',
             this.drawerToggleHandler_.bind(this));
-        obfuscator.addEventListener('mousewheel', eatEvent);
+        this.obfuscator_ = obfuscator;
+
+        this.drawer_.addEventListener('keydown', this.keyboardEventHandler_.bind(this));
+        this.drawer_.setAttribute('aria-hidden', 'true');
       }
+
+      // Keep an eye on screen size, and add/remove auxiliary class for styling
+      // of small screens.
+      this.screenSizeMediaQuery_ = window.matchMedia(
+          /** @type {string} */ (this.Constant_.MAX_WIDTH));
+      this.screenSizeMediaQuery_.addListener(this.screenSizeHandler_.bind(this));
+      this.screenSizeHandler_();
 
       // Initialize tabs, if any.
       if (this.header_ && this.tabBar_) {
@@ -435,28 +500,37 @@
       panel.classList.add(layout.CssClasses_.IS_ACTIVE);
     }
 
-    if (tab) {
-      if (layout.tabBar_.classList.contains(
-          layout.CssClasses_.JS_RIPPLE_EFFECT)) {
-        var rippleContainer = document.createElement('span');
-        rippleContainer.classList.add(layout.CssClasses_.RIPPLE_CONTAINER);
-        rippleContainer.classList.add(layout.CssClasses_.JS_RIPPLE_EFFECT);
-        var ripple = document.createElement('span');
-        ripple.classList.add(layout.CssClasses_.RIPPLE);
-        rippleContainer.appendChild(ripple);
-        tab.appendChild(rippleContainer);
-      }
-
-      tab.addEventListener('click', function(e) {
-        if (tab.getAttribute('href').charAt(0) === '#') {
-          e.preventDefault();
-          selectTab();
-        }
-      });
-
-      tab.show = selectTab;
+    if (layout.tabBar_.classList.contains(
+        layout.CssClasses_.JS_RIPPLE_EFFECT)) {
+      var rippleContainer = document.createElement('span');
+      rippleContainer.classList.add(layout.CssClasses_.RIPPLE_CONTAINER);
+      rippleContainer.classList.add(layout.CssClasses_.JS_RIPPLE_EFFECT);
+      var ripple = document.createElement('span');
+      ripple.classList.add(layout.CssClasses_.RIPPLE);
+      rippleContainer.appendChild(ripple);
+      tab.appendChild(rippleContainer);
     }
+
+    tab.addEventListener('click', function(e) {
+      if (tab.getAttribute('href').charAt(0) === '#') {
+        e.preventDefault();
+        selectTab();
+      }
+    });
+
+    tab.show = selectTab;
+
+    tab.addEventListener('click', function(e) {
+      e.preventDefault();
+      var href = tab.href.split('#')[1];
+      var panel = layout.content_.querySelector('#' + href);
+      layout.resetTabState_(tabs);
+      layout.resetPanelState_(panels);
+      tab.classList.add(layout.CssClasses_.IS_ACTIVE);
+      panel.classList.add(layout.CssClasses_.IS_ACTIVE);
+    });
   }
+  window['MaterialLayoutTab'] = MaterialLayoutTab;
 
   // The component registers itself. It can assume componentHandler is available
   // in the global scope.

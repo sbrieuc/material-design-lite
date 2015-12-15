@@ -112,7 +112,8 @@
       container.insertBefore(outline, this.element_);
 
       // Find the "for" element and bind events to it.
-      var forElId = this.element_.getAttribute('for');
+      var forElId = this.element_.getAttribute('for') ||
+                      this.element_.getAttribute('data-mdl-for');
       var forEl = null;
       if (forElId) {
         forEl = document.getElementById(forElId);
@@ -125,15 +126,15 @@
       }
 
       var items = this.element_.querySelectorAll('.' + this.CssClasses_.ITEM);
-      this.boundItemKeydown = this.handleItemKeyboardEvent_.bind(this);
-      this.boundItemClick = this.handleItemClick_.bind(this);
+      this.boundItemKeydown_ = this.handleItemKeyboardEvent_.bind(this);
+      this.boundItemClick_ = this.handleItemClick_.bind(this);
       for (var i = 0; i < items.length; i++) {
         // Add a listener to each menu item.
-        items[i].addEventListener('click', this.boundItemClick);
+        items[i].addEventListener('click', this.boundItemClick_);
         // Add a tab index to each menu item.
         items[i].tabIndex = '-1';
         // Add a keyboard listener to each menu item.
-        items[i].addEventListener('keydown', this.boundItemKeydown);
+        items[i].addEventListener('keydown', this.boundItemKeydown_);
       }
 
       // Add ripple classes to each item, if the user has enabled ripples.
@@ -294,7 +295,7 @@
    * @private
    */
   MaterialMenu.prototype.handleItemClick_ = function(evt) {
-    if (evt.target.getAttribute('disabled') !== null) {
+    if (evt.target.hasAttribute('disabled')) {
       evt.stopPropagation();
     } else {
       // Wait some time before closing menu, so the user can see the ripple.
@@ -338,20 +339,24 @@
   };
 
   /**
+   * cleanup function to remove animation listeners.
+   *
+   * @param {Event} evt
+   * @private
+   */
+
+  MaterialMenu.prototype.removeAnimationEndListener_ = function(evt) {
+    evt.target.classList.remove(MaterialMenu.prototype.CssClasses_.IS_ANIMATING);
+  };
+
+  /**
    * Adds an event listener to clean up after the animation ends.
    *
    * @private
    */
   MaterialMenu.prototype.addAnimationEndListener_ = function() {
-    var cleanup = function() {
-      this.element_.removeEventListener('transitionend', cleanup);
-      this.element_.removeEventListener('webkitTransitionEnd', cleanup);
-      this.element_.classList.remove(this.CssClasses_.IS_ANIMATING);
-    }.bind(this);
-
-    // Remove animation class once the transition is done.
-    this.element_.addEventListener('transitionend', cleanup);
-    this.element_.addEventListener('webkitTransitionEnd', cleanup);
+    this.element_.addEventListener('transitionend', this.removeAnimationEndListener_);
+    this.element_.addEventListener('webkitTransitionEnd', this.removeAnimationEndListener_);
   };
 
   /**
@@ -409,7 +414,9 @@
         // displayed the menu in the first place. If so, do nothing.
         // Also check to see if the menu is in the process of closing itself, and
         // do nothing in that case.
-        if (e !== evt && !this.closing_) {
+        // Also check if the clicked element is a menu item
+        // if so, do nothing.
+        if (e !== evt && !this.closing_ && e.target.parentNode !== this.element_) {
           document.removeEventListener('click', callback);
           this.hide();
         }
@@ -430,12 +437,13 @@
 
       // Remove all transition delays; menu items fade out concurrently.
       for (var i = 0; i < items.length; i++) {
-        items[i].style.transitionDelay = null;
+        items[i].style.removeProperty('transition-delay');
       }
 
       // Measure the inner element.
-      var height = this.element_.getBoundingClientRect().height;
-      var width = this.element_.getBoundingClientRect().width;
+      var rect = this.element_.getBoundingClientRect();
+      var height = rect.height;
+      var width = rect.width;
 
       // Turn on animation, and apply the final clip. Also make invisible.
       // This triggers the transitions.
@@ -472,10 +480,21 @@
     var items = this.element_.querySelectorAll('.' + this.CssClasses_.ITEM);
 
     for (var i = 0; i < items.length; i++) {
-      items[i].removeEventListener('click', this.boundItemClick);
-      items[i].removeEventListener('keydown', this.boundItemKeydown);
+      items[i].removeEventListener('click', this.boundItemClick_);
+      items[i].removeEventListener('keydown', this.boundItemKeydown_);
     }
   };
+
+  /**
+   * Public alias for the downgrade method.
+   *
+   * @public
+   */
+  MaterialMenu.prototype.mdlDowngrade =
+      MaterialMenu.prototype.mdlDowngrade_;
+
+  MaterialMenu.prototype['mdlDowngrade'] =
+      MaterialMenu.prototype.mdlDowngrade;
 
   // The component registers itself. It can assume componentHandler is available
   // in the global scope.
