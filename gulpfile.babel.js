@@ -39,7 +39,7 @@ import pkg from './package.json';
 
 const $ = gulpLoadPlugins();
 const reload = browserSync.reload;
-const hostedLibsUrlPrefix = 'https://storage.googleapis.com/code.getmdl.io';
+const hostedLibsUrlPrefix = 'https://code.getmdl.io';
 const templateArchivePrefix = 'mdl-template-';
 const bucketProd = 'gs://www.getmdl.io';
 const bucketStaging = 'gs://mdl-staging';
@@ -56,22 +56,18 @@ const banner = ['/**',
 let codeFiles = '';
 
 const AUTOPREFIXER_BROWSERS = [
-  'ie >= 10',
-  'ie_mob >= 10',
-  'ff >= 30',
-  'chrome >= 34',
-  'safari >= 7',
-  'opera >= 23',
-  'ios >= 7',
-  'android >= 4.4',
-  'bb >= 10'
+  'ie >= 11',
+  'edge >= 20',
+  'ff >= 44',
+  'chrome >= 48',
+  'safari >= 8',
+  'opera >= 35',
+  'ios >= 8'
 ];
 
 const SOURCES = [
   // Component handler
   'src/mdlComponentHandler.js',
-  // Polyfills/dependencies
-  'src/third_party/**/*.js',
   // Base components
   'src/button/button.js',
   'src/checkbox/checkbox.js',

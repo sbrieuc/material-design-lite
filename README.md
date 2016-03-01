@@ -1,6 +1,10 @@
 # Material Design Lite
 
-[![GitHub version](https://badge.fury.io/gh/google%2Fmaterial-design-lite.svg)](https://badge.fury.io/gh/google%2Fmaterial-design-lite) [![npm version](https://badge.fury.io/js/material-design-lite.svg)](https://badge.fury.io/js/material-design-lite) [![Bower version](https://badge.fury.io/bo/material-design-lite.svg)](https://badge.fury.io/bo/material-design-lite)
+[![GitHub version](https://badge.fury.io/gh/google%2Fmaterial-design-lite.svg)](https://badge.fury.io/gh/google%2Fmaterial-design-lite)
+[![npm version](https://badge.fury.io/js/material-design-lite.svg)](https://badge.fury.io/js/material-design-lite)
+[![Bower version](https://badge.fury.io/bo/material-design-lite.svg)](https://badge.fury.io/bo/material-design-lite)
+[![Gitter version](https://img.shields.io/gitter/room/gitterHQ/gitter.svg)](https://gitter.im/google/material-design-lite)
+[![Dependency Status](https://david-dm.org/google/material-design-lite.svg)](https://david-dm.org/google/material-design-lite)
 
 > An implementation of [Material Design](http://www.google.com/design/spec/material-design/introduction.html)
 components in vanilla CSS, JS, and HTML
@@ -10,6 +14,8 @@ static content websites. It doesn't rely on any JavaScript frameworks or
 libraries. Optimized for cross-device use, gracefully degrades in older
 browsers, and offers an experience that is accessible from the get-go.
 
+> **Important note for contributors** - The master branch now has breaking V2 changes. As such it can not be merged into `mdl-1.1`. If you are making a contribution to 1.1, then please send pull requests directly to that branch. We will routinely merge that back into master. Thank you!
+
 ## Use MDL on your site?
 
 **This document is targeted at developers that will contribute to or compile
@@ -18,12 +24,18 @@ MDL. If you are looking to use MDL on your website or web app please head to
 
 ## Browser Support
 
-| IE9 | IE10 | IE11 | Chrome | Opera | Firefox | Safari | Chrome (Android) | Mobile Safari |
-|-----|------|------|--------|-------|---------|--------|------------------|---------------|
-| B   | A    | A    | A      | A     | A       | A      | A                | A             |
+Supported evergreen browsers:
 
-A-grade browsers are fully supported. B-grade browsers will gracefully degrade
-to our CSS-only experience.
+- Chrome
+- Edge
+- Firefox
+- Opera
+
+Supported versioned browsers:
+
+- Internet Explorer 11
+- Safari 8
+- Mobile Safari 8
 
 ## Getting Started
 
@@ -112,6 +124,7 @@ templates:
 * [Text Heavy Webpage Template](http://www.getmdl.io/templates/text-only)
 * [Stand Alone Article Template](http://www.getmdl.io/templates/article)
 * [Android.com MDL Skin Template](http://www.getmdl.io/templates/android-dot-com)
+* [Portfolio Template](http://www.getmdl.io/templates/portfolio)
 
 > Templates are not officially supported in IE9 and legacy browsers that do not
 pass the minimum-requirements defined in our

@@ -339,7 +339,7 @@
   };
 
   /**
-   * cleanup function to remove animation listeners.
+   * Cleanup function to remove animation listeners.
    *
    * @param {Event} evt
    * @private
@@ -399,7 +399,7 @@
 
       // Wait for the next frame, turn on animation, and apply the final clip.
       // Also make it visible. This triggers the transitions.
-      window.requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
         this.element_.classList.add(this.CssClasses_.IS_ANIMATING);
         this.element_.style.clip = 'rect(0 ' + width + 'px ' + height + 'px 0)';
         this.container_.classList.add(this.CssClasses_.IS_VISIBLE);
@@ -470,31 +470,6 @@
     }
   };
   MaterialMenu.prototype['toggle'] = MaterialMenu.prototype.toggle;
-
-  /**
-   * Downgrade the component.
-   *
-   * @private
-   */
-  MaterialMenu.prototype.mdlDowngrade_ = function() {
-    var items = this.element_.querySelectorAll('.' + this.CssClasses_.ITEM);
-
-    for (var i = 0; i < items.length; i++) {
-      items[i].removeEventListener('click', this.boundItemClick_);
-      items[i].removeEventListener('keydown', this.boundItemKeydown_);
-    }
-  };
-
-  /**
-   * Public alias for the downgrade method.
-   *
-   * @public
-   */
-  MaterialMenu.prototype.mdlDowngrade =
-      MaterialMenu.prototype.mdlDowngrade_;
-
-  MaterialMenu.prototype['mdlDowngrade'] =
-      MaterialMenu.prototype.mdlDowngrade;
 
   // The component registers itself. It can assume componentHandler is available
   // in the global scope.

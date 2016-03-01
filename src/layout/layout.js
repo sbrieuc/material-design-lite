@@ -43,6 +43,7 @@
   MaterialLayout.prototype.Constant_ = {
     MAX_WIDTH: '(max-width: 1024px)',
     TAB_SCROLL_PIXELS: 100,
+    RESIZE_TIMEOUT: 100,
 
     MENU_ICON: '&#xE5D2;',
     CHEVRON_LEFT: 'chevron_left',
@@ -137,16 +138,24 @@
       return;
     }
 
+    var headerVisible =
+        !this.element_.classList.contains(this.CssClasses_.IS_SMALL_SCREEN) ||
+        this.element_.classList.contains(this.CssClasses_.FIXED_HEADER);
+
     if (this.content_.scrollTop > 0 &&
         !this.header_.classList.contains(this.CssClasses_.IS_COMPACT)) {
       this.header_.classList.add(this.CssClasses_.CASTING_SHADOW);
       this.header_.classList.add(this.CssClasses_.IS_COMPACT);
-      this.header_.classList.add(this.CssClasses_.IS_ANIMATING);
+      if (headerVisible) {
+        this.header_.classList.add(this.CssClasses_.IS_ANIMATING);
+      }
     } else if (this.content_.scrollTop <= 0 &&
         this.header_.classList.contains(this.CssClasses_.IS_COMPACT)) {
       this.header_.classList.remove(this.CssClasses_.CASTING_SHADOW);
       this.header_.classList.remove(this.CssClasses_.IS_COMPACT);
-      this.header_.classList.add(this.CssClasses_.IS_ANIMATING);
+      if (headerVisible) {
+        this.header_.classList.add(this.CssClasses_.IS_ANIMATING);
+      }
     }
   };
 
@@ -181,7 +190,7 @@
   };
 
   /**
-   * Handles events of of drawer button.
+   * Handles events of drawer button.
    *
    * @param {Event} evt The event that fired.
    * @private
@@ -250,21 +259,16 @@
   */
   MaterialLayout.prototype.toggleDrawer = function() {
     var drawerButton = this.element_.querySelector('.' + this.CssClasses_.DRAWER_BTN);
-    var firstLink = document.querySelector('.' + this.CssClasses_.DRAWER + ' a');
     this.drawer_.classList.toggle(this.CssClasses_.IS_DRAWER_OPEN);
     this.obfuscator_.classList.toggle(this.CssClasses_.IS_DRAWER_OPEN);
 
-    // focus first link if drawer will be opened otherwise focus the drawer button
+    // Set accessibility properties.
     if (this.drawer_.classList.contains(this.CssClasses_.IS_DRAWER_OPEN)) {
       this.drawer_.setAttribute('aria-hidden', 'false');
       drawerButton.setAttribute('aria-expanded', 'true');
-      if (firstLink) {
-        firstLink.focus();
-      }
     } else {
       this.drawer_.setAttribute('aria-hidden', 'true');
       drawerButton.setAttribute('aria-expanded', 'false');
-      drawerButton.focus();
     }
   };
   MaterialLayout.prototype['toggleDrawer'] =
@@ -277,9 +281,16 @@
     if (this.element_) {
       var container = document.createElement('div');
       container.classList.add(this.CssClasses_.CONTAINER);
+
+      var focusedElement = this.element_.querySelector(':focus');
+
       this.element_.parentElement.insertBefore(container, this.element_);
       this.element_.parentElement.removeChild(this.element_);
       container.appendChild(this.element_);
+
+      if (focusedElement) {
+        focusedElement.focus();
+      }
 
       var directChildren = this.element_.childNodes;
       var numChildren = directChildren.length;
@@ -300,6 +311,16 @@
           this.content_ = child;
         }
       }
+
+      window.addEventListener('pageshow', function(e) {
+        if (e.persisted) { // when page is loaded from back/forward cache
+          // trigger repaint to let layout scroll in safari
+          this.element_.style.overflowY = 'hidden';
+          requestAnimationFrame(function() {
+            this.element_.style.overflowY = '';
+          }.bind(this));
+        }
+      }.bind(this), false);
 
       if (this.header_) {
         this.tabBar_ = this.header_.querySelector('.' + this.CssClasses_.TAB_BAR);
@@ -440,8 +461,9 @@
         tabContainer.appendChild(this.tabBar_);
         tabContainer.appendChild(rightButton);
 
-        // Add and remove buttons depending on scroll position.
-        var tabScrollHandler = function() {
+        // Add and remove tab buttons depending on scroll position and total
+        // window size.
+        var tabUpdateHandler = function() {
           if (this.tabBar_.scrollLeft > 0) {
             leftButton.classList.add(this.CssClasses_.IS_ACTIVE);
           } else {
@@ -456,8 +478,22 @@
           }
         }.bind(this);
 
-        this.tabBar_.addEventListener('scroll', tabScrollHandler);
-        tabScrollHandler();
+        this.tabBar_.addEventListener('scroll', tabUpdateHandler);
+        tabUpdateHandler();
+
+        // Update tabs when the window resizes.
+        var windowResizeHandler = function() {
+          // Use timeouts to make sure it doesn't happen too often.
+          if (this.resizeTimeoutId_) {
+            clearTimeout(this.resizeTimeoutId_);
+          }
+          this.resizeTimeoutId_ = setTimeout(function() {
+            tabUpdateHandler();
+            this.resizeTimeoutId_ = null;
+          }.bind(this), /** @type {number} */ (this.Constant_.RESIZE_TIMEOUT));
+        }.bind(this);
+
+        window.addEventListener('resize', windowResizeHandler);
 
         if (this.tabBar_.classList.contains(this.CssClasses_.JS_RIPPLE_EFFECT)) {
           this.tabBar_.classList.add(this.CssClasses_.RIPPLE_IGNORE_EVENTS);
