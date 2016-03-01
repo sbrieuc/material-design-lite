@@ -223,18 +223,6 @@
     this.fireChange();
   };
 
-  /**
-   * Downgrade the component
-   *
-   * @private
-   */
-  MaterialSelectfield.prototype.mdlDowngrade_ = function() {
-    componentHandler.downgradeElements(this.menu_);
-    this.button_.removeEventListener('click', this.clickMenu_.bind(this));
-    this.element_.removeChild(this.menu_.parentNode);
-    this.button_.parentNode.removeChild(this.button_);
-  };
-
   // The component registers itself. It can assume componentHandler is
   // available in the global scope.
   componentHandler.register({
