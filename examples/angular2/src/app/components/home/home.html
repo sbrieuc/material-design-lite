@@ -1,0 +1,10 @@
+<mdl-checkbox-wrapper>
+  <mdl-checkbox [(ngModel)]="isChecked"
+               [indeterminate]="isIndeterminate"
+               (change)="handleChange()"></mdl-checkbox>
+  <label mdl-checkbox-label [id]="labelId">The checkbox is {{status}}</label>
+</mdl-checkbox-wrapper>
+<div style="padding-top: 12px;">
+  <button type="button" (click)="isIndeterminate = true">Make Indeterminate</button>
+</div>
+<p>{{changeEventCount}} change events so far</p>
