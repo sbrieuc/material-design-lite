@@ -21,12 +21,12 @@
  * Make html take up the entire screen
  * Then set touch-action to avoid touch delay on mobile IE
  */
-html {
+/*html {
   width: 100%;
   height: 100%;
   -ms-touch-action: manipulation;
   touch-action: manipulation;
-}
+}*/
 
 /*
 * Make body take up the entire screen
